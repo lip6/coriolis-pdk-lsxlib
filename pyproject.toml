@@ -1,0 +1,19 @@
+
+[build-system]
+build-backend = "mesonpy"
+requires      = ["meson-python"]
+
+[project]
+name        = "coriolis-pdk-lsxlib"
+version     = "2026.05.31"
+authors     = [ { name="Franck Wajsburt", email="Franck.Wajsburt@lip6.fr" } ]
+description = "PDK for lsxlib library"
+readme      = "README.rst"
+license     = { text="GPL-2.0-or-later" }
+keywords    = [ "vlsi", "pdk" ]
+classifiers = [ "Development Status   :: 3 - Alpha" 
+              , "Programming Language :: Python :: 3.8"
+              ]
+
+[project.urls]
+Homepage = "https://coriolis.lip6.fr/"
