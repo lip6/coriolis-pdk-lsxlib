@@ -8,18 +8,18 @@ project(
 py       = import( 'python' ).find_installation( pure:false )
 py_deps  = dependency( 'python3', required: true )
 pdks_dir = py.get_install_dir() / 'pdks' / 'lsxlib'
+tech_dir = pdks_dir / 'libs.tech' / 'coriolis'
 
 setup_files = [ 'libs.tech/coriolis/__init__.py'
-              , 'libs.tech/coriolis/nsxlib2.py'
-              , 'libs.tech/coriolis/techno.py'
-              , 'libs.tech/coriolis/techno_symb.py'
+             #, 'libs.tech/coriolis/nsxlib2.py'
+             #, 'libs.tech/coriolis/techno.py'
+             #, 'libs.tech/coriolis/techno_symb.py'
               ]
-#py.install_sources( files(setup_files), subdir:'pdks/lsxlib' )
+py.install_sources( files(setup_files), subdir:'pdks/lsxlib' )
 
 #install_data  ( 'libs.tech/coriolis/symbolic.graal', install_dir:pdks_dir )
 #install_data  ( 'libs.tech/coriolis/symbolic.dreal', install_dir:pdks_dir )
 #install_data  ( 'libs.tech/coriolis/sg13g2.rds'    , install_dir:pdks_dir )
-#install_subdir( 'libs.tech/gf180mcu'               , install_dir:pdks_dir / 'libs.tech' )
-#install_subdir( 'libs.tech/sg13g2'                 , install_dir:pdks_dir / 'libs.tech' )
-#install_subdir( 'libs.tech/sky130'                 , install_dir:pdks_dir / 'libs.tech' )
+install_subdir( 'libs.tech/coriolis/sg13g2'        , install_dir:tech_dir )
+install_subdir( 'libs.tech/coriolis/sky130'        , install_dir:tech_dir )
 install_subdir( 'libs.ref'                         , install_dir:pdks_dir )

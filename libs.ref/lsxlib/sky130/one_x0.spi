@@ -1,0 +1,23 @@
+* Spice description of one_x0
+* Spice driver version -1460663379
+* Date ( dd/mm/yyyy hh:mm:ss ):  8/05/2026 at 14:22:51
+
+* INTERF q vdd vss 
+
+
+.subckt one_x0 6 3 10 
+* NET 3 = vdd
+* NET 6 = q
+* NET 10 = vss
+Mtr_00001 1 11 7 3 sky130_fd_pr__pfet_01v8__model L=0.15U W=0.66U AS=0.1914P AD=0.1914P PS=1.9U PD=1.9U 
+R3_1 1 2 15
+R3_2 2 3 26
+C3_21 2 10 6.42888e-17
+C3_22 3 10 6.42888e-17
+R2_1 6 7 15
+R1_1 11 12 15
+R1_2 10 12 169
+C1_21 10 10 4.07162e-16
+C1_22 12 10 4.07162e-16
+.ends one_x0
+

@@ -1,0 +1,17 @@
+*~
+*.swp
+*.pyc
+*.log
+*.bak
+.#*
+
+TAGS
+GTAGS
+GPATH
+GRTAGS
+.dir-locals.el
+.projectile
+.vscode
+.venv
+.doit.db
+__pycache__

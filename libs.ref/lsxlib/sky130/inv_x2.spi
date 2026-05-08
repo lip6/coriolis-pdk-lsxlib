@@ -1,0 +1,37 @@
+* Spice description of inv_x2
+* Spice driver version -1836504147
+* Date ( dd/mm/yyyy hh:mm:ss ):  8/05/2026 at 14:22:51
+
+* INTERF i nq vdd vss 
+
+
+.subckt inv_x2 1 14 10 18 
+* NET 1 = i
+* NET 10 = vdd
+* NET 14 = nq
+* NET 18 = vss
+Mtr_00002 15 4 7 10 sky130_fd_pr__pfet_01v8__model L=0.15U W=2.46U AS=0.7134P AD=0.7134P PS=5.5U PD=5.5U 
+Mtr_00001 19 2 13 18 sky130_fd_pr__nfet_01v8__model L=0.15U W=1.26U AS=0.3654P AD=0.3654P PS=3.1U PD=3.1U 
+R4_1 3 1 15
+R4_2 3 4 576
+C4_21 3 18 9.98634e-17
+C4_22 4 18 9.98634e-17
+R4_3 2 3 384
+C4_31 2 18 6.76494e-17
+C4_32 3 18 6.76494e-17
+R3_1 9 7 15
+R3_2 8 7 15
+R3_3 9 10 26
+C3_31 9 18 6.42888e-17
+C3_32 10 18 6.42888e-17
+R3_4 8 9 13
+C3_41 8 18 5.3574e-17
+C3_42 9 18 5.3574e-17
+R2_1 14 13 7.5
+R2_2 14 15 3.75
+R1_1 19 20 15
+R1_2 18 20 26
+C1_21 18 18 6.42888e-17
+C1_22 20 18 6.42888e-17
+.ends inv_x2
+
