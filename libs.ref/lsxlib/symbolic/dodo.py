@@ -10,7 +10,9 @@ import os
 from   doit   import get_var
 from   lsxlib import setup, USE_REAL_RDS
 
-techno        = 'sky130'
+#techno        = 'sky130'
+#techno        = 'ihpsg13g2'
+techno        = 'symbolic'
 useSymb       = get_var( 'use-symb-rds'  , False )
 updateDistrib = get_var( 'update-distrib', False )
 
@@ -30,11 +32,18 @@ from coriolis.designflow.druc     import Druc
 from coriolis.designflow.cougar   import Cougar
 from coriolis.designflow.vasy     import Vasy
 from coriolis.designflow.proof    import Proof
+from coriolis.designflow.s2r      import S2R
 from coriolis.designflow.tasyagle import TasYagle, STA, XTas, ExtractCell, Liberty
 from coriolis.designflow.copy     import Copy
 from coriolis.designflow.alias    import Alias
 from coriolis.designflow.group    import Group
+from coriolis.designflow.pnr      import PnR
 from coriolis.designflow.clean    import Clean
+
+if techno == 'ihpsg13g2':
+    from pdks.ihpsg13g2_c4m.designflow.drc import DRC 
+else:
+    from coriolis.designflow.klayout  import DRC
 
 
 cougarFlags   = Cougar.Transistor|Cougar.GroundCap|Cougar.WireRC
@@ -78,8 +87,9 @@ def checkCell ( cellName ):
         1. druc
         2. cougar --> yagle --> vasy --> proof
     """
-    global  checkLibRules
-    global  cellsVhdFiles
+    global techno
+    global checkLibRules
+    global cellsVhdFiles
 
     ruleDruc    = Druc       .mkRule( f'druc.{cellName}'  , f'{cellName}.spi' )
     ruleCougar  = Cougar     .mkRule( f'cougar.{cellName}', f'{cellName}.spi'
@@ -92,6 +102,10 @@ def checkCell ( cellName ):
     ruleProof   = Proof      .mkRule( f'proof.{cellName}' , [ f'{cellName}.vbe'
                                                             , f'{cellName}_ext.vbe' ]
                                                           , Proof.DisplayErrors )
+    if techno != 'symbolic':
+       ruleS2R    = S2R         .mkRule( f's2r.{cellName}'   , f'{cellName}.gds'
+                                                             , f'{cellName}.ap' )
+       ruleDRC    = DRC         .mkRule( f'drc.{cellName}'   , f'{cellName}.gds' )
     checkLibRules += [ ruleDruc, ruleProof ]
     cellVhdFiles.append( f'{cellName}.vhd' )
 
@@ -115,7 +129,8 @@ if updateDistrib:
     ruleCopy = Copy.mkRule( 'copy.liberty', f'../{techno}/lsxlib.lib', f'lsxlib.lib' )
     checkLibRules.append( ruleCopy )
 
-ruleGraal = Graal  .mkRule( 'graal', flags=Graal.Config )
-ruleDreal = Dreal  .mkRule( 'dreal', flags=Dreal.Config )
-ruleClean = Clean  .mkRule( [ 'cgt.log' ] )
-ruleGroup = Group  .mkRule( 'check-lib', checkLibRules )
+ruleGraal = Graal.mkRule( 'graal', flags=Graal.Config )
+ruleDreal = Dreal.mkRule( 'dreal', flags=Dreal.Config )
+ruleCgt   = PnR  .mkRule( 'cgt' )
+ruleClean = Clean.mkRule( [ 'cgt.log' ] )
+ruleGroup = Group.mkRule( 'check-lib', checkLibRules )

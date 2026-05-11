@@ -1,8 +1,16 @@
 
 from pathlib import Path
-from coriolis.helpers.io         import ErrorMessage, vprint
-from coriolis.designflow.technos import Where
-from coriolis.designflow.task    import ShellEnv
+from coriolis                     import CRL, Cfg, Viewer
+from coriolis.helpers             import overlay, l, u, n
+from coriolis.helpers.io          import ErrorMessage, vprint
+from coriolis.designflow.technos  import Where
+from coriolis.designflow.task     import ShellEnv
+from coriolis.designflow.yosys    import Yosys
+from coriolis.designflow.iverilog import Iverilog
+from coriolis.designflow.klayout  import Klayout
+from coriolis.designflow.lvx      import Lvx
+from coriolis.designflow.x2y      import x2y
+from coriolis.designflow.tasyagle import TasYagle
 
 
 __all__ = [ 'setup', 'USE_REAL_RDS' ]
@@ -11,23 +19,84 @@ __all__ = [ 'setup', 'USE_REAL_RDS' ]
 USE_REAL_RDS = 0x0001
 
 
+isPdkInstalled = False
+realTechnoDir  = None
+libsRefDir     = None
+
+
+def _setupSymbolic ( flags ):
+    global isPdkInstalled
+    global realTechnoDir
+    global libsRefDir
+
+    from .techno_symb import setupPureSymb, setupSymb
+
+    setupPureSymb()
+    setupSymb()
+
+    cellsDir     = libsRefDir   / 'lsxlib'
+    cellsTechDir = cellsDir     / 'symbolic'
+    liberty      = cellsTechDir / 'lsxlib-symb.lib'
+    if isPdkInstalled: Yosys.setLiberty( liberty )
+
+
+def _setupSky130_c4m ( flags ):
+    global isPdkInstalled
+    global realTechnoDir
+    global libsRefDir
+
+    from pdks.sky130_c4m import setup as setupReal
+
+    setupReal()
+
+    cellsDir     = libsRefDir   / 'lsxlib'
+    cellsTechDir = cellsDir     / 'sky130'
+    liberty      = cellsTechDir / 'lsxlib.lib'
+
+    shellEnv = ShellEnv( 'SkyWater 130A Alliance Environment' )
+    shellEnv[ 'MBK_CATA_LIB' ] = shellEnv[ 'MBK_CATA_LIB' ] + ':' + cellsDir.as_posix()
+    shellEnv.export()
+    if isPdkInstalled: Yosys.setLiberty( liberty )
+
+    if len(TasYagle.MBK_CATA_LIB):
+        TasYagle.MBK_CATA_LIB = TasYagle.MBK_CATA_LIB + ':' + (cellsTechDir).as_posix()
+    else:
+        TasYagle.MBK_CATA_LIB = '.:' + (cellsTechDir).as_posix()
+
+
+def _setupIhpsg13g2_c4m ( flags ):
+    global isPdkInstalled
+    global realTechnoDir
+    global libsRefDir
+
+    from pdks.ihpsg13g2_c4m import setup as setupReal
+    from .techno_symb       import setupSymb
+
+    setupReal()
+    setupSymb()
+
+    cellsDir     = libsRefDir   / 'lsxlib'
+    cellsTechDir = cellsDir     / 'ihpsg13g2'
+    liberty      = cellsTechDir / 'lsxlib.lib'
+
+    shellEnv = ShellEnv( 'SkyWater 130A Alliance Environment' )
+    shellEnv[ 'MBK_CATA_LIB' ] = shellEnv[ 'MBK_CATA_LIB' ] + ':' + cellsDir.as_posix()
+    shellEnv.export()
+    if isPdkInstalled: Yosys.setLiberty( liberty )
+
+    if len(TasYagle.MBK_CATA_LIB):
+        TasYagle.MBK_CATA_LIB = TasYagle.MBK_CATA_LIB + ':' + (cellsTechDir).as_posix()
+    else:
+        TasYagle.MBK_CATA_LIB = '.:' + (cellsTechDir).as_posix()
+
+
 def setup ( techno=None, flags=0 ):
+    global isPdkInstalled
+    global realTechnoDir
+    global libsRefDir
+
     if techno is None:
         raise ErrorMessage( 1, 'lsxlib.setup(): <techno> argument has not been set.' )
-
-    from coriolis                     import Cfg 
-    from coriolis                     import Viewer
-    from coriolis                     import CRL 
-    from coriolis.helpers             import overlay, l, u, n
-    from coriolis.designflow.yosys    import Yosys
-    from coriolis.designflow.iverilog import Iverilog
-    from coriolis.designflow.klayout  import Klayout
-    from coriolis.designflow.lvx      import Lvx
-    from coriolis.designflow.x2y      import x2y
-    from coriolis.designflow.tasyagle import TasYagle
-#   from .designflow.drc              import DRC
-#   from .techno                      import setup as techno_setup 
-#   from .StdCellLib                  import setup as StdCellLib_setup
     
     with overlay.CfgCache(priority=Cfg.Parameter.Priority.UserFile) as cfg:
         cfg.misc.catchCore     = False
@@ -45,81 +114,36 @@ def setup ( techno=None, flags=0 ):
     vprint( 1, f'     - Target technology: "{techno}".' )
     vprint( 1, f'     - PDK installed:     "{isPdkInstalled}".' )
 
-    if   techno == 'ihpsg13g2': pass
+    if   techno == 'symbolic':  pass
+    elif techno == 'ihpsg13g2': pass
     elif techno == 'sky130':    pass
     else:
         raise ErrorMessage( 1, f'lsxlib.setup(): techno="{techno}" is not supported.' )
-    if isPdkInstalled: realTechnoDir = Path( __file__ ).parent / 'libs.tech' / 'coriolis' / techno
-    else:              realTechnoDir = Path( __file__ ).parent / techno
+    if isPdkInstalled:
+        libsRefDir    = Path( __file__ ).parent / 'libs.ref'
+        realTechnoDir = Path( __file__ ).parent / 'libs.tech' / 'coriolis' / techno
+    else:
+        libsRefDir    = Path( __file__ ).parents[3] / 'libs.ref'
+        realTechnoDir = Path( __file__ ).parents[0] / techno
     if not realTechnoDir.is_dir():
         raise ErrorMessage( 1, [ f'lsxlib.setup(): techno="{techno}" directory is missing.'
                                , f'({realTechnoDir})' ] )
 
     Where()
 
+    if techno == 'symbolic':  _setupSymbolic     ( flags )
+    if techno == 'sky130':    _setupSky130_c4m   ( flags )
+    if techno == 'ihpsg13g2': _setupIhpsg13g2_c4m( flags )
+
     ShellEnv.RDS_TECHNO_NAME = (realTechnoDir / 'symbolic.rds').as_posix()
-    if flags & USE_REAL_RDS:
+    if techno != 'symbolic' and flags & USE_REAL_RDS:
         ShellEnv.RDS_TECHNO_NAME = (realTechnoDir / f'{techno}_lsx.rds').as_posix()
     ShellEnv.GRAAL_TECHNO_NAME = (realTechnoDir / 'symbolic.graal').as_posix()
    #ShellEnv.DREAL_TECHNO_NAME = (realTechnoDir / 'symbolic.dreal').as_posix()
-    ShellEnv.MBK_SPI_MODEL     = (realTechnoDir / 'spimodel.cfg'  ).as_posix()
+   #ShellEnv.MBK_SPI_MODEL     = (realTechnoDir / 'spimodel.cfg'  ).as_posix()
 
-#   techno_setup()
-#   StdCellLib_setup()
-
-#   liberty        = pdkMasterTop / 'libs.ref' / 'StdCellLib' / 'liberty' / 'StdCellLib_nom.lib'
-#   stdCellLibVlog = pdkMasterTop / 'libs.ref' / 'StdCellLib' / 'verilog' / 'StdCellLib.v'
-#   spiceCells     = pdkMasterTop / 'libs.ref' / 'StdCellLib' / 'spice'
-#   ngspiceTech    = pdkIHPTop    / 'libs.tech' / 'ngspice'
-#   verilogATech   = pdkIHPTop    / 'libs.tech' / 'verilog-a'
-#   klayoutTech    = pdkIHPTop    / 'libs.tech' / 'klayout'
-#   klayoutHome    = Path().home() / '.klayout'
-#   kdrcScript     = klayoutTech  / 'tech' / 'drc' / 'run_drc.py'
-#   lypFile        = klayoutTech  / 'tech' / 'sg13g2.lyp'
-#   fillerScript   = klayoutTech  / 'tech' / 'scripts' / 'filler.py'
-#   sealRingScript = klayoutTech  / 'tech' / 'scripts' / 'sealring.py'
-#   
-#   with overlay.CfgCache(priority=Cfg.Parameter.Priority.UserFile) as cfg:
-#       cfg.etesian.graphics    = 3
-#       cfg.etesian.spaceMargin = 0.10
-#       cfg.katana.eventsLimit  = 4000000
-#       af  = CRL.AllianceFramework.get()
-#       lg5 = af.getRoutingGauge('StdCellLib').getLayerGauge( 5 )
-#       lg5.setType( CRL.RoutingLayerGauge.PowerSupply )
-#       env = af.getEnvironment()
-#       env.setCLOCK( '^sys_clk$|^ck|^jtag_tck$' )
-#       env.setSCALE_X( 100 )
-
-#   Yosys.setLiberty( liberty )
-#   shellEnv = ShellEnv( 'IHP SG13G2 Alliance Environment' )
-#   shellEnv[ 'MBK_CATA_LIB' ] = shellEnv[ 'MBK_CATA_LIB' ] + ':' + spiceCells.as_posix()
-#   shellEnv.export()
-
-#   Iverilog.setStdCellLib( stdCellLibVlog )
-
-#   Klayout.setLypFile( lypFile )
-#   DRC.setScript( kdrcScript )
-#   ShellEnv.CHECK_TOOLKIT = Where.checkToolkit.as_posix()
-#   ShellEnv.PDK_ROOT      = pdkIHPTop.parent.as_posix()
-#   ShellEnv.PDK           = 'ihpsg13g2'
-#   ShellEnv.KLAYOUT_PATH  = '{}:{}'.format( klayoutHome, klayoutTech )
-#   ShellEnv.KLAYOUT_HOME  = '{}'.format( klayoutHome )
-#   Filler  .setScript( fillerScript )
-#   SealRing.setScript( sealRingScript )
-
-    TasYagle.flags         = TasYagle.Transistor
-    TasYagle.SpiceType     = 'hspice'
-    TasYagle.SpiceTrModel  = [ (realTechnoDir / 'C4M.Sky130_logic_tt_model.spice').as_posix() ]
-#   TasYagle.MBK_CATA_LIB  = '.:' + (ngspiceTech / 'models').as_posix() \
-#                          + ':' + (pdkMasterTop).as_posix() \
-#                          + ':' + (pdkMasterTop/'libs.ref'/'StdCellLib'/'spice').as_posix()
-#   Lvx.MBK_CATA_LIB  = TasYagle.MBK_CATA_LIB
-#   x2y.MBK_CATA_LIB  = TasYagle.MBK_CATA_LIB
-
-    TasYagle.MBK_SPI_MODEL = (realTechnoDir / 'spimodel.cfg').as_posix()
-    TasYagle.Temperature   = 25.0
-    TasYagle.VddSupply     = 1.8 
-    TasYagle.VddName       = 'vdd'
-    TasYagle.VssName       = 'vss'
-    TasYagle.ClockName     = 'm_clock'
+    cellsDir = libsRefDir / 'lsxlib' / 'symbolic'
+    af       = CRL.AllianceFramework.get()
+    env      = af.getEnvironment()
+    env.addSYSTEM_LIBRARY( library=cellsDir.as_posix(), mode=CRL.Environment.Prepend )
 
