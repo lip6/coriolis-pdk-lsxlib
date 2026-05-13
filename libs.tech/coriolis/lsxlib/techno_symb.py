@@ -1,17 +1,18 @@
 
 import sys
 import re
-from coriolis                         import Cfg, CRL, Viewer
-from coriolis.Hurricane               import DataBase, Technology, DbU, Layer, BasicLayer, DiffusionLayer, \
-                                             TransistorLayer, RegularLayer, ViaLayer, ContactLayer
-from coriolis.helpers.overlay         import CfgCache
-from coriolis.helpers                 import l, u, n
-from coriolis.helpers.io              import ErrorMessage, vprint
-from coriolis.helpers.technology      import createBL, createVia
-from coriolis.technos.common.colors   import toRGB
-from coriolis.technos.common.patterns import toHexa
-from coriolis.designflow.task         import ShellEnv
-from coriolis.designflow.tasyagle     import TasYagle
+from   coriolis                         import Cfg, CRL, Viewer
+from   coriolis.Hurricane               import DataBase, Technology, DbU, Layer, BasicLayer, DiffusionLayer, \
+                                               TransistorLayer, RegularLayer, ViaLayer, ContactLayer
+from   coriolis.helpers.overlay         import CfgCache
+from   coriolis.helpers                 import l, u, n
+from   coriolis.helpers.io              import ErrorMessage, vprint
+from   coriolis.helpers.technology      import createBL, createVia
+from   coriolis.technos.common.colors   import toRGB
+from   coriolis.technos.common.patterns import toHexa
+from   coriolis.technos.common          import addStyle
+from   coriolis.designflow.task         import ShellEnv
+from   coriolis.designflow.tasyagle     import TasYagle
 
 
 def _safeGetTechnology ():
@@ -38,6 +39,7 @@ def getMetalNb ( tech ):
     metalNb = 0
     MaterialMetal = BasicLayer.Material(BasicLayer.Material.metal)
     for basicLayer in tech.getBasicLayers():
+        if basicLayer.getName().startswith( 'gmetal' ): continue
         if basicLayer.getMaterial() == MaterialMetal:
             metalNb += 1
     return metalNb
@@ -254,34 +256,6 @@ def setupSymb ():
     CONT_POLY.setMinimalSize(            l( 1.0) )
     CONT_POLY.setEnclosure  ( poly     , l( 0.5), Layer.EnclosureH|Layer.EnclosureV )
     CONT_POLY.setEnclosure  ( metals[1], l( 0.5), Layer.EnclosureH|Layer.EnclosureV )
-
-
-def buildStyle ( datas, metalNb ):
-    reMetal = re.compile( r'metal(?P<nb>\d+)' )
-    reCut   = re.compile( r'cut(?P<nb>\d+)' )
-
-    style = Viewer.DisplayStyle( datas['Name'] )
-    style.setDescription( datas['Description'] )
-    if 'Darkening' in datas and datas['Darkening']: style.setDarkening( datas['Darkening'] )
-    if 'Inherit'   in datas and datas['Inherit'  ]: style.inheritFrom ( datas['Inherit'  ] )
-
-    for groupName, group in datas.items():
-        if not isinstance(group,list): continue
-        for layerStyle in group:
-            m = reMetal.match( layerStyle[0] )
-            if m and int(m.group('nb')) > metalNb: continue
-            m = reCut.match( layerStyle[0] )
-            if m and int(m.group('nb')) >= metalNb: continue
-            
-            arguments = { 'group' : groupName
-                        , 'name'  : layerStyle[0]
-                        }
-            if not (layerStyle[1] is None): arguments[ 'color'     ] = layerStyle[1]
-            if not (layerStyle[2] is None): arguments[ 'border'    ] = layerStyle[2]
-            if not (layerStyle[3] is None): arguments[ 'pattern'   ] = layerStyle[3]
-            if not (layerStyle[4] is None): arguments[ 'threshold' ] = layerStyle[4]
-            style.addDrawingStyle( **arguments )
-    Viewer.Graphics.addStyle( style )
 
 
 def setupDisplay ( metalNb, scale ):
@@ -574,8 +548,8 @@ def setupDisplay ( metalNb, scale ):
         ]
       }
 
-    buildStyle( styleCoriolisBlack, metalNb )
-    buildStyle( styleAllianceBlack, metalNb )
-    buildStyle( styleAllianceWhite, metalNb )
-    buildStyle( stylePrinterWhite , metalNb )
+    addStyle( styleCoriolisBlack, metalNb )
+    addStyle( styleAllianceBlack, metalNb )
+    addStyle( styleAllianceWhite, metalNb )
+    addStyle( stylePrinterWhite , metalNb )
     Viewer.Graphics.setStyle( styleAllianceBlack['Name'] )

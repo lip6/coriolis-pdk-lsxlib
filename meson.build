@@ -13,6 +13,7 @@ tech_dir = pdks_dir / 'libs.tech' / 'coriolis'
 setup_files = [ 'libs.tech/coriolis/__init__.py'
               , 'libs.tech/coriolis/lsxlib/__init__.py'
               , 'libs.tech/coriolis/lsxlib/techno_symb.py'
+              , 'libs.tech/coriolis/lsxlib/lsxlib.py'
               ]
 py.install_sources( files(setup_files), subdir:'pdks/lsxlib' )
 

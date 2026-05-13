@@ -90,6 +90,27 @@ def _setupIhpsg13g2_c4m ( flags ):
         TasYagle.MBK_CATA_LIB = '.:' + (cellsTechDir).as_posix()
 
 
+def _setupNda ( flags ):
+    """
+    In NDA mode, all the technology settings should have been taken care of by
+    an earlier setup of the real one.
+    """
+    global isPdkInstalled
+    global realTechnoDir
+    global libsRefDir
+
+    from .techno_symb import setupSymb
+
+    setupSymb()
+
+    cellsDir     = libsRefDir   / 'lsxlib'
+    cellsTechDir = cellsDir     / 'symbolic'
+    liberty      = cellsTechDir / 'lsxlib-symb.lib'
+    if isPdkInstalled: Yosys.setLiberty( liberty )
+
+    pass
+
+
 def setup ( techno=None, flags=0 ):
     global isPdkInstalled
     global realTechnoDir
@@ -112,11 +133,12 @@ def setup ( techno=None, flags=0 ):
     isPdkInstalled = True if Path(__file__).parents[1].name == 'pdks' else False
     vprint( 1,  '  o  Setup LSxLib library.' )
     vprint( 1, f'     - Target technology: "{techno}".' )
-    vprint( 1, f'     - PDK installed:     "{isPdkInstalled}".' )
+    vprint( 1, f'     - PDK installed:     {isPdkInstalled}.' )
 
     if   techno == 'symbolic':  pass
     elif techno == 'ihpsg13g2': pass
     elif techno == 'sky130':    pass
+    elif techno == 'NDA':       pass
     else:
         raise ErrorMessage( 1, f'lsxlib.setup(): techno="{techno}" is not supported.' )
     if isPdkInstalled:
@@ -125,15 +147,11 @@ def setup ( techno=None, flags=0 ):
     else:
         libsRefDir    = Path( __file__ ).parents[3] / 'libs.ref'
         realTechnoDir = Path( __file__ ).parents[0] / techno
-    if not realTechnoDir.is_dir():
+    if techno != 'NDA' and not realTechnoDir.is_dir():
         raise ErrorMessage( 1, [ f'lsxlib.setup(): techno="{techno}" directory is missing.'
                                , f'({realTechnoDir})' ] )
 
     Where()
-
-    if techno == 'symbolic':  _setupSymbolic     ( flags )
-    if techno == 'sky130':    _setupSky130_c4m   ( flags )
-    if techno == 'ihpsg13g2': _setupIhpsg13g2_c4m( flags )
 
     ShellEnv.RDS_TECHNO_NAME = (realTechnoDir / 'symbolic.rds').as_posix()
     if techno != 'symbolic' and flags & USE_REAL_RDS:
@@ -142,8 +160,11 @@ def setup ( techno=None, flags=0 ):
    #ShellEnv.DREAL_TECHNO_NAME = (realTechnoDir / 'symbolic.dreal').as_posix()
    #ShellEnv.MBK_SPI_MODEL     = (realTechnoDir / 'spimodel.cfg'  ).as_posix()
 
-    cellsDir = libsRefDir / 'lsxlib' / 'symbolic'
-    af       = CRL.AllianceFramework.get()
-    env      = af.getEnvironment()
-    env.addSYSTEM_LIBRARY( library=cellsDir.as_posix(), mode=CRL.Environment.Prepend )
+    if techno == 'symbolic':  _setupSymbolic     ( flags )
+    if techno == 'sky130':    _setupSky130_c4m   ( flags )
+    if techno == 'ihpsg13g2': _setupIhpsg13g2_c4m( flags )
+    if techno == 'NDA':       _setupNda          ( flags )
 
+    from .lsxlib import setup as setupLsxlib
+
+    setupLsxlib()

@@ -11,8 +11,8 @@ from   doit   import get_var
 from   lsxlib import setup, USE_REAL_RDS
 
 #techno        = 'sky130'
-#techno        = 'ihpsg13g2'
-techno        = 'symbolic'
+techno        = 'ihpsg13g2'
+#techno        = 'symbolic'
 useSymb       = get_var( 'use-symb-rds'  , False )
 updateDistrib = get_var( 'update-distrib', False )
 
